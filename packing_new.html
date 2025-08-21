@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>여행 준비물 - 신규 입력</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#fafafa; margin:0; }
+  .wrap{ max-width:1000px; margin:28px auto; background:#fff; padding:20px; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,0.06);}
+  h1{ font-size:20px; margin:0 0 16px; }
+  .row{ display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  input[type="text"], input[type="number"], textarea { border:1px solid #ddd; border-radius:8px; padding:10px; }
+  input[name="trip_title"]{ flex:1; min-width:260px; }
+  table{ width:100%; border-collapse:collapse; }
+  th, td{ border-bottom:1px solid #eee; padding:10px; text-align:left; }
+  th{ background:#fafafa; }
+  .btn{ border:0; border-radius:8px; padding:10px 14px; cursor:pointer; font-weight:600; }
+  .btn-primary{ background:#0d6efd; color:#fff; }
+  .btn-gray{ background:#e9ecef; }
+  .btn-danger{ background:#dc3545; color:#fff; }
+  .actions{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+  .right{ margin-left:auto; }
+  .hint{ color:#666; font-size:13px; }
+  .topbar{ display:flex; gap:10px; align-items:center; margin-bottom:10px;}
+  a.link{ text-decoration:none; color:#0d6efd; font-weight:600; }
+  .add-pack{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .add-pack input[type="number"]{ width:100px; }
+  .muted{ color:#666; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1>여행 준비물 - 신규 입력</h1>
+    <div class="right"><a class="link" href="packing_list.html">전체 목록</a></div>
+  </div>
+
+  <div class="row">
+    <label>여행제목</label>
+    <input type="text" name="trip_title" id="trip_title" placeholder="예) 2025 발리" />
+  </div>
+
+  <div class="actions">
+    <div class="add-pack">
+      <span class="muted">몇 건 추가</span>
+      <input type="number" id="addCount" min="1" max="200" value="1" />
+      <button class="btn btn-gray" id="addRow">행 추가</button>
+    </div>
+    <button class="btn btn-danger" id="clearRows">모든 행 비우기</button>
+    <div class="right hint">※ 저장 시 보이는 모든 행이 등록됩니다.</div>
+  </div>
+
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th style="width:32px;">#</th>
+        <th>준비물</th>
+        <th style="width:100px;">수량</th>
+        <th>비고</th>
+        <th style="width:70px;">삭제</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="saveAll">저장</button>
+    <button class="btn btn-gray" onclick="location.href='packing_list.html'">목록으로</button>
+  </div>
+</div>
+
+<script>
+  const supabase = window.supabase.createClient(
+    'https://xxmtxuhcdzidhrefrvwf.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bXR4dWhjZHppZGhyZWZydndmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwODAyNTQsImV4cCI6MjA1OTY1NjI1NH0.TaCCDlJvKrif_pZY038Qkglip8h-Qqjp2w2GlKwvoVg'
+  );
+
+  const tbody = document.querySelector('#tbl tbody');
+  const addRowBtn = document.getElementById('addRow');
+  const clearRowsBtn = document.getElementById('clearRows');
+  const saveAllBtn = document.getElementById('saveAll');
+  const addCountEl = document.getElementById('addCount');
+
+  function addRow(data={item_name:'', quantity:1, note:''}) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="idx"></td>
+      <td><input type="text" class="item" placeholder="예) 선크림" value="${escapeHtml(data.item_name)}" /></td>
+      <td><input type="number" class="qty" min="1" value="${Number(data.quantity)||1}" style="width:100%;" /></td>
+      <td><input type="text" class="note" placeholder="메모" value="${escapeHtml(data.note||'')}" /></td>
+      <td><button class="btn btn-danger btn-sm del">삭제</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  function addRows(n=1){
+    n = clampInt(n, 1, 200);
+    for(let i=0;i<n;i++) addRow();
+    refreshIndex();
+  }
+
+  function refreshIndex(){
+    [...tbody.querySelectorAll('tr')].forEach((tr, i)=> tr.querySelector('.idx').textContent = i+1);
+  }
+
+  function clampInt(v, min, max){
+    const num = Math.floor(Number(v)||1);
+    return Math.max(min, Math.min(max, num));
+  }
+
+  function escapeHtml(s=''){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+  addRowBtn.onclick = ()=> addRows(addCountEl.value);
+  addCountEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ addRows(addCountEl.value); } });
+
+  clearRowsBtn.onclick = ()=> { tbody.innerHTML=''; };
+
+  tbody.addEventListener('click', (e)=>{
+    if(e.target.classList.contains('del')) {
+      e.target.closest('tr').remove();
+      refreshIndex();
+    }
+  });
+
+  saveAllBtn.onclick = async ()=>{
+    const title = document.getElementById('trip_title').value.trim();
+    if(!title){ alert('여행제목을 입력하세요.'); return; }
+    const rows = [...tbody.querySelectorAll('tr')].map(tr=>{
+      return {
+        item_name: tr.querySelector('.item').value.trim(),
+        quantity: Number(tr.querySelector('.qty').value)||1,
+        note: tr.querySelector('.note').value.trim()
+      }
+    }).filter(r=>r.item_name);
+
+    if(rows.length===0){ alert('등록할 준비물 행이 없습니다.'); return; }
+
+    const payload = rows.map(r=>({
+      trip_title: title,
+      item_name: r.item_name,
+      quantity: r.quantity,
+      checked: false,
+      note: r.note || null
+    }));
+
+    const {error} = await supabase.from('packing_items').insert(payload);
+    if(error){ alert('저장 실패: '+error.message); return; }
+    alert('저장되었습니다!');
+    location.href = 'packing_manage.html?title='+encodeURIComponent(title);
+  };
+
+  // 초기 기본 행 5개
+  addRows(5);
+</script>
+</body>
+</html>
