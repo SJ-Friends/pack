@@ -3,70 +3,129 @@
 <head>
 <meta charset="UTF-8" />
 <title>여행 준비물 - 신규 입력</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#fafafa; margin:0; }
-  .wrap{ max-width:1000px; margin:28px auto; background:#fff; padding:20px; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,0.06);}
-  h1{ font-size:20px; margin:0 0 16px; }
-  .row{ display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
-  input[type="text"], input[type="number"], textarea { border:1px solid #ddd; border-radius:8px; padding:10px; }
-  input[name="trip_title"]{ flex:1; min-width:260px; }
+  :root{
+    --bg:#f6f8fa; --card:#fff; --bd:#e9ecef; --txt:#111; --muted:#6b7280;
+    --pri:#0d6efd; --pri-ink:#fff; --danger:#dc3545; --danger-ink:#fff;
+    --radius:14px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--bg); color:var(--txt); font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, sans-serif; }
+  .wrap{ max-width:920px; margin:0 auto; padding:12px 12px 92px; }
+  .card{ background:var(--card); border-radius:var(--radius); box-shadow:0 8px 24px rgba(0,0,0,.06); padding:16px; }
+
+  /* Top bar */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:10px 4px 12px; }
+  h1{ font-size:20px; margin:0; }
+  a.link{ color:var(--pri); font-weight:700; text-decoration:none; }
+
+  /* Sticky toolbar (add controls) */
+  .toolbar{
+    position:sticky; top:0; z-index:10;
+    background:var(--bg); padding:8px 0 6px; margin:-8px 0 10px;
+  }
+  .toolbar .bar{
+    display:flex; gap:8px; align-items:center; padding:8px; background:var(--card);
+    border-radius:999px; box-shadow:0 6px 18px rgba(0,0,0,.08); border:1px solid var(--bd);
+  }
+  .muted{ color:var(--muted); font-size:13px; }
+  input[type="text"], input[type="number"]{
+    width:100%; border:1px solid var(--bd); border-radius:12px; padding:12px 12px;
+    font-size:16px; background:#fff;
+  }
+  input[type="number"]{ max-width:120px; }
+  .btn{ border:0; border-radius:12px; padding:12px 14px; font-weight:700; cursor:pointer; }
+  .btn-pri{ background:var(--pri); color:var(--pri-ink); }
+  .btn-gray{ background:#eef2f7; color:#1f2937; }
+  .btn-danger{ background:var(--danger); color:var(--danger-ink); }
+
+  /* Title row */
+  .title-row{ display:flex; gap:10px; align-items:center; margin:10px 4px 12px; flex-wrap:wrap; }
+  .title-row label{ font-weight:700; }
+  #trip_title{ flex:1; min-width:260px; }
+
+  /* Table -> mobile cards */
   table{ width:100%; border-collapse:collapse; }
-  th, td{ border-bottom:1px solid #eee; padding:10px; text-align:left; }
-  th{ background:#fafafa; }
-  .btn{ border:0; border-radius:8px; padding:10px 14px; cursor:pointer; font-weight:600; }
-  .btn-primary{ background:#0d6efd; color:#fff; }
-  .btn-gray{ background:#e9ecef; }
-  .btn-danger{ background:#dc3545; color:#fff; }
-  .actions{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
-  .right{ margin-left:auto; }
-  .hint{ color:#666; font-size:13px; }
-  .topbar{ display:flex; gap:10px; align-items:center; margin-bottom:10px;}
-  a.link{ text-decoration:none; color:#0d6efd; font-weight:600; }
-  .add-pack{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .add-pack input[type="number"]{ width:100px; }
-  .muted{ color:#666; font-size:13px; }
+  th,td{ padding:10px; border-bottom:1px solid #eee; text-align:left; }
+  th{ background:#fafafa; font-size:13px; color:#374151; }
+  .del-btn{ padding:10px 12px; border-radius:10px; background:var(--danger); color:#fff; border:0; }
+
+  /* Row card style at <= 768px */
+  @media (max-width:768px){
+    table, thead, tbody, th, td, tr{ display:block; }
+    thead{ display:none; }
+    tbody tr{
+      background:var(--card); border:1px solid var(--bd); border-radius:12px;
+      padding:10px; margin:10px 0; box-shadow:0 4px 12px rgba(0,0,0,.05);
+    }
+    td{ border:0; padding:6px 4px; }
+    td[data-label]{ font-size:12px; color:var(--muted); margin-bottom:4px; }
+    td .rowline{ display:flex; gap:8px; align-items:center; }
+    .idx-badge{
+      background:#eef4ff; color:#0d6efd; padding:6px 10px; border-radius:999px; font-weight:800; min-width:36px; text-align:center;
+    }
+    .del-btn{ margin-left:auto; }
+  }
+
+  /* Bottom sticky actions */
+  .bottom-actions{
+    position:fixed; left:0; right:0; bottom:0; z-index:20;
+    padding:10px 12px calc(12px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg, rgba(246,248,250,0), var(--bg) 30%);
+  }
+  .bottom-actions .bar{
+    display:flex; gap:8px; align-items:center; justify-content:space-between;
+    background:var(--card); border:1px solid var(--bd); border-radius:16px; padding:10px;
+    box-shadow:0 10px 24px rgba(0,0,0,.09);
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="topbar">
     <h1>여행 준비물 - 신규 입력</h1>
-    <div class="right"><a class="link" href="packing_list.html">전체 목록</a></div>
+    <a class="link" href="packing_list.html">전체 목록</a>
   </div>
 
-  <div class="row">
-    <label>여행제목</label>
-    <input type="text" name="trip_title" id="trip_title" placeholder="예) 2025 발리" />
+  <div class="card title-row">
+    <label for="trip_title">여행제목</label>
+    <input type="text" id="trip_title" placeholder="예) 2025 발리" autocomplete="off" />
   </div>
 
-  <div class="actions">
-    <div class="add-pack">
+  <div class="toolbar">
+    <div class="bar">
       <span class="muted">몇 건 추가</span>
-      <input type="number" id="addCount" min="1" max="200" value="1" />
+      <input type="number" id="addCount" min="1" max="200" value="1" inputmode="numeric" />
       <button class="btn btn-gray" id="addRow">행 추가</button>
+      <button class="btn btn-danger" id="clearRows">모든 행 비우기</button>
     </div>
-    <button class="btn btn-danger" id="clearRows">모든 행 비우기</button>
-    <div class="right hint">※ 저장 시 보이는 모든 행이 등록됩니다.</div>
   </div>
 
-  <table id="tbl">
-    <thead>
-      <tr>
-        <th style="width:32px;">#</th>
-        <th>준비물</th>
-        <th style="width:100px;">수량</th>
-        <th>비고</th>
-        <th style="width:70px;">삭제</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="card">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th style="width:48px;">#</th>
+          <th>준비물</th>
+          <th style="width:110px;">수량</th>
+          <th>비고</th>
+          <th style="width:80px;">삭제</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-  <div class="actions">
-    <button class="btn btn-primary" id="saveAll">저장</button>
-    <button class="btn btn-gray" onclick="location.href='packing_list.html'">목록으로</button>
+  <div class="bottom-actions">
+    <div class="bar">
+      <span class="muted">※ 보이는 모든 행이 저장됩니다.</span>
+      <div>
+        <button class="btn btn-pri" id="saveAll">저장</button>
+        <button class="btn btn-gray" onclick="location.href='packing_list.html'">목록으로</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -82,67 +141,57 @@
   const saveAllBtn = document.getElementById('saveAll');
   const addCountEl = document.getElementById('addCount');
 
-  function addRow(data={item_name:'', quantity:1, note:''}) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
+  function escapeHtml(s=''){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+  const clampInt = (v,min,max)=> Math.max(min, Math.min(max, Math.floor(Number(v)||min)));
+
+  function trTemplate(data={item_name:'', quantity:1, note:''}, indexForCard=null){
+    return `
       <td class="idx"></td>
-      <td><input type="text" class="item" placeholder="예) 선크림" value="${escapeHtml(data.item_name)}" /></td>
-      <td><input type="number" class="qty" min="1" value="${Number(data.quantity)||1}" style="width:100%;" /></td>
-      <td><input type="text" class="note" placeholder="메모" value="${escapeHtml(data.note||'')}" /></td>
-      <td><button class="btn btn-danger btn-sm del">삭제</button></td>
+      <td data-label="준비물">
+        <div class="rowline">
+          <span class="idx-badge" style="display:none;"></span>
+          <input type="text" class="item" placeholder="예) 선크림" value="${escapeHtml(data.item_name)}" />
+        </div>
+      </td>
+      <td data-label="수량"><input type="number" class="qty" min="1" inputmode="numeric" value="${Number(data.quantity)||1}" /></td>
+      <td data-label="비고"><input type="text" class="note" placeholder="메모" value="${escapeHtml(data.note||'')}" /></td>
+      <td><button class="del-btn">삭제</button></td>
     `;
-    tbody.appendChild(tr);
   }
 
-  function addRows(n=1){
-    n = clampInt(n, 1, 200);
-    for(let i=0;i<n;i++) addRow();
-    refreshIndex();
-  }
+  function addRow(data){ const tr=document.createElement('tr'); tr.innerHTML=trTemplate(data); tbody.appendChild(tr); }
+  function addRows(n=1){ n=clampInt(n,1,200); for(let i=0;i<n;i++) addRow({}); refreshIndex(); }
 
   function refreshIndex(){
-    [...tbody.querySelectorAll('tr')].forEach((tr, i)=> tr.querySelector('.idx').textContent = i+1);
+    [...tbody.querySelectorAll('tr')].forEach((tr,i)=>{
+      const idxCell = tr.querySelector('.idx'); if(idxCell) idxCell.textContent = i+1;
+      const badge = tr.querySelector('.idx-badge'); if(badge){ badge.style.display='inline-block'; badge.textContent=i+1; }
+    });
   }
-
-  function clampInt(v, min, max){
-    const num = Math.floor(Number(v)||1);
-    return Math.max(min, Math.min(max, num));
-  }
-
-  function escapeHtml(s=''){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
   addRowBtn.onclick = ()=> addRows(addCountEl.value);
   addCountEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ addRows(addCountEl.value); } });
-
   clearRowsBtn.onclick = ()=> { tbody.innerHTML=''; };
 
   tbody.addEventListener('click', (e)=>{
-    if(e.target.classList.contains('del')) {
-      e.target.closest('tr').remove();
-      refreshIndex();
+    if(e.target.classList.contains('del-btn')){
+      e.target.closest('tr').remove(); refreshIndex();
     }
   });
 
   saveAllBtn.onclick = async ()=>{
     const title = document.getElementById('trip_title').value.trim();
     if(!title){ alert('여행제목을 입력하세요.'); return; }
-    const rows = [...tbody.querySelectorAll('tr')].map(tr=>{
-      return {
-        item_name: tr.querySelector('.item').value.trim(),
-        quantity: Number(tr.querySelector('.qty').value)||1,
-        note: tr.querySelector('.note').value.trim()
-      }
-    }).filter(r=>r.item_name);
+
+    const rows = [...tbody.querySelectorAll('tr')].map(tr=>({
+      item_name: tr.querySelector('.item').value.trim(),
+      quantity: Number(tr.querySelector('.qty').value)||1,
+      note: tr.querySelector('.note').value.trim()
+    })).filter(r=>r.item_name);
 
     if(rows.length===0){ alert('등록할 준비물 행이 없습니다.'); return; }
 
-    const payload = rows.map(r=>({
-      trip_title: title,
-      item_name: r.item_name,
-      quantity: r.quantity,
-      checked: false,
-      note: r.note || null
-    }));
+    const payload = rows.map(r=>({ trip_title:title, item_name:r.item_name, quantity:r.quantity, checked:false, note:r.note||null }));
 
     const {error} = await supabase.from('packing_items').insert(payload);
     if(error){ alert('저장 실패: '+error.message); return; }
@@ -150,7 +199,7 @@
     location.href = 'packing_manage.html?title='+encodeURIComponent(title);
   };
 
-  // 초기 기본 행 5개
+  // 초기 5행
   addRows(5);
 </script>
 </body>

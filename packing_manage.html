@@ -3,77 +3,129 @@
 <head>
 <meta charset="UTF-8" />
 <title>여행 준비물 - 관리</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#f6f8fa; margin:0; }
-  .wrap{ max-width:1100px; margin:24px auto; background:#fff; padding:18px; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,0.06);}
-  .top{ display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+  :root{
+    --bg:#f6f8fa; --card:#fff; --bd:#e9ecef; --txt:#111; --muted:#6b7280;
+    --pri:#0d6efd; --pri-ink:#fff; --danger:#dc3545; --danger-ink:#fff;
+    --radius:14px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--bg); color:var(--txt); font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, sans-serif; }
+  .wrap{ max-width:920px; margin:0 auto; padding:12px 12px 108px; }
+
+  /* Header */
+  .top{ display:flex; gap:10px; align-items:center; justify-content:space-between; margin:10px 4px 12px; }
   h1{ font-size:20px; margin:0; }
-  .title-badge{ padding:6px 10px; background:#eef4ff; border-radius:999px; font-weight:700; color:#0d6efd; }
-  .right{ margin-left:auto; }
-  a.link{ text-decoration:none; color:#0d6efd; font-weight:600; }
+  .title-badge{ padding:6px 10px; background:#eef4ff; border-radius:999px; font-weight:800; color:#0d6efd; }
+  a.link{ color:var(--pri); font-weight:700; text-decoration:none; }
+
+  /* Sticky toolbar */
+  .toolbar{
+    position:sticky; top:0; z-index:10; background:var(--bg); padding:6px 0 8px;
+  }
+  .toolbar .bar{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    background:var(--card); border:1px solid var(--bd); border-radius:16px; padding:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,.08);
+  }
+  .muted{ color:var(--muted); font-size:13px; }
+  input[type="text"], input[type="number"]{
+    width:100%; border:1px solid var(--bd); border-radius:12px; padding:12px 12px; font-size:16px; background:#fff;
+  }
+  input[type="number"]{ max-width:110px; }
+  .btn{ border:0; border-radius:12px; padding:12px 14px; font-weight:800; cursor:pointer; }
+  .btn-pri{ background:var(--pri); color:var(--pri-ink); }
+  .btn-gray{ background:#eef2f7; color:#1f2937; }
+  .btn-danger{ background:var(--danger); color:var(--danger-ink); }
+  .pill{ padding:6px 10px; border-radius:999px; background:#f1f3f5; font-weight:700; }
+  .count{ font-weight:900; }
+
+  /* Table -> mobile cards */
   table{ width:100%; border-collapse:collapse; }
-  th, td{ border-bottom:1px solid #eee; padding:10px; text-align:left; }
-  th{ background:#fafafa; }
-  input[type="text"], input[type="number"]{ border:1px solid #ddd; border-radius:8px; padding:8px; width:100%; }
-  .btn{ border:0; border-radius:8px; padding:9px 12px; cursor:pointer; font-weight:600; }
-  .btn-primary{ background:#0d6efd; color:#fff; }
-  .btn-gray{ background:#e9ecef; }
-  .btn-danger{ background:#dc3545; color:#fff; }
-  .row{ display:flex; gap:10px; align-items:center; margin:12px 0; flex-wrap:wrap; }
-  .pill{ padding:6px 10px; border-radius:999px; background:#f1f3f5; }
-  .muted{ color:#666; font-size:13px; }
-  .count{ font-weight:700; }
-  .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .add-pack{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .add-pack input[type="number"]{ width:100px; }
+  th,td{ padding:10px; border-bottom:1px solid #eee; text-align:left; }
+  th{ background:#fafafa; font-size:13px; color:#374151; }
+  .del-btn{ padding:10px 12px; border-radius:10px; background:var(--danger); color:#fff; border:0; }
+  .chk{ width:22px; height:22px; accent-color:var(--pri); }
+
+  @media (max-width:768px){
+    table, thead, tbody, th, td, tr{ display:block; }
+    thead{ display:none; }
+    tbody tr{
+      background:var(--card); border:1px solid var(--bd); border-radius:12px;
+      padding:10px; margin:10px 0; box-shadow:0 4px 12px rgba(0,0,0,.05);
+    }
+    td{ border:0; padding:6px 4px; }
+    .rowline{ display:flex; gap:10px; align-items:center; }
+    .idx-badge{ background:#eef4ff; color:#0d6efd; padding:6px 10px; border-radius:999px; font-weight:900; min-width:36px; text-align:center; }
+    .del-btn{ margin-left:auto; }
+  }
+
+  /* Bottom sticky actions */
+  .bottom-actions{
+    position:fixed; left:0; right:0; bottom:0; z-index:20;
+    padding:10px 12px calc(12px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg, rgba(246,248,250,0), var(--bg) 30%);
+  }
+  .bottom-actions .bar{
+    display:flex; gap:8px; align-items:center; justify-content:space-between;
+    background:var(--card); border:1px solid var(--bd); border-radius:16px; padding:10px;
+    box-shadow:0 10px 24px rgba(0,0,0,.09);
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top">
-    <h1>여행 준비물 - 관리</h1>
-    <div class="title-badge" id="titleBadge"></div>
-    <div class="right"><a class="link" href="packing_list.html">전체 목록</a></div>
-  </div>
-
-  <div class="row toolbar">
-    <div class="add-pack">
-      <span class="muted">몇 건 추가</span>
-      <input type="number" id="addCount" min="1" max="200" value="1" />
-      <button class="btn btn-gray" id="addRow">항목 추가</button>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <h1>여행 준비물 - 관리</h1>
+      <span class="title-badge" id="titleBadge"></span>
     </div>
-    <button class="btn btn-primary" id="saveChanges">변경사항 저장</button>
-    <button class="btn btn-danger" id="deleteChecked">체크된 항목 삭제</button>
-    <span class="pill">총: <span id="totalCount" class="count">0</span>개</span>
-    <span class="pill">체크됨: <span id="checkedCount" class="count">0</span>개</span>
+    <a class="link" href="packing_list.html">전체 목록</a>
   </div>
 
-  <table id="tbl">
-    <thead>
-      <tr>
-        <th style="width:34px;">#</th>
-        <th style="width:36px;">체크</th>
-        <th>준비물</th>
-        <th style="width:110px;">수량</th>
-        <th>비고</th>
-        <th style="width:70px;">삭제</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <div class="row">
-    <div class="muted">※ 체크박스는 즉시 토글되지만, 수량/비고/추가/삭제는 <b>변경사항 저장</b>을 눌러야 반영됩니다.</div>
+  <div class="toolbar">
+    <div class="bar">
+      <span class="muted">몇 건 추가</span>
+      <input type="number" id="addCount" min="1" max="200" value="1" inputmode="numeric" />
+      <button class="btn btn-gray" id="addRow">항목 추가</button>
+      <button class="btn btn-danger" id="deleteChecked">체크된 항목 삭제</button>
+      <span class="pill">총: <span id="totalCount" class="count">0</span>개</span>
+      <span class="pill">체크됨: <span id="checkedCount" class="count">0</span>개</span>
+    </div>
   </div>
 
-  <hr style="border:none; border-top:1px solid #eee; margin:18px 0;">
+  <div class="card" style="margin:10px 0;">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th style="width:44px;">#</th>
+          <th style="width:44px;">체크</th>
+          <th>준비물</th>
+          <th style="width:110px;">수량</th>
+          <th>비고</th>
+          <th style="width:80px;">삭제</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="muted" style="margin-top:8px;">※ 체크는 즉시 반영, 나머지는 <b>저장</b> 버튼을 눌러 반영됩니다.</div>
+  </div>
 
-  <div class="row">
-    <label>이 목록을 다른 이름으로 복제:</label>
-    <input type="text" id="cloneTitle" placeholder="예) 2025 발리(가족용)" style="min-width:280px;" />
-    <button class="btn btn-primary" id="doClone">복제</button>
+  <div class="card" style="margin:10px 0;">
+    <div class="muted" style="margin-bottom:6px;">이 목록을 다른 이름으로 복제</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <input type="text" id="cloneTitle" placeholder="예) 2025 발리(가족용)" style="flex:1; min-width:240px;" />
+      <button class="btn btn-pri" id="doClone">복제</button>
+    </div>
+  </div>
+
+  <div class="bottom-actions">
+    <div class="bar">
+      <span class="muted">변경사항을 저장하세요</span>
+      <button class="btn btn-pri" id="saveChanges">변경사항 저장</button>
+    </div>
   </div>
 </div>
 
@@ -95,15 +147,38 @@
   const checkedCountEl = document.getElementById('checkedCount');
   const addCountEl = document.getElementById('addCount');
 
-  function escapeHtml(s=''){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
-  function clampInt(v, min, max){
-    const num = Math.floor(Number(v)||1);
-    return Math.max(min, Math.min(max, num));
-  }
+  const escapeHtml = (s='')=> s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  const clampInt = (v,min,max)=> Math.max(min, Math.min(max, Math.floor(Number(v)||min)));
+
   function refreshIndex(){
-    [...tbody.querySelectorAll('tr')].forEach((tr, i)=> tr.querySelector('.idx').textContent = i+1);
-    totalCountEl.textContent = tbody.querySelectorAll('tr').length;
+    const trs=[...tbody.querySelectorAll('tr')];
+    trs.forEach((tr,i)=>{
+      const idx = tr.querySelector('.idx'); if(idx) idx.textContent=i+1;
+      const badge = tr.querySelector('.idx-badge'); if(badge){ badge.textContent=i+1; }
+    });
+    totalCountEl.textContent = trs.length;
     checkedCountEl.textContent = tbody.querySelectorAll('input.chk:checked').length;
+  }
+
+  function makeRow(row){
+    const tr=document.createElement('tr');
+    tr.dataset.id = row?.id || '';
+    tr.innerHTML = `
+      <td class="idx"></td>
+      <td>
+        <input type="checkbox" class="chk" ${row?.checked?'checked':''}>
+      </td>
+      <td>
+        <div class="rowline">
+          <span class="idx-badge" style="display:inline-block;"></span>
+          <input type="text" class="item" value="${escapeHtml(row?.item_name||'')}" placeholder="새 준비물">
+        </div>
+      </td>
+      <td><input type="number" min="1" class="qty" inputmode="numeric" value="${Number(row?.quantity)||1}"></td>
+      <td><input type="text" class="note" value="${escapeHtml(row?.note||'')}"></td>
+      <td><button class="del-btn">삭제</button></td>
+    `;
+    return tr;
   }
 
   async function loadItems(){
@@ -117,91 +192,65 @@
 
     if(error){ alert('불러오기 실패: '+error.message); return; }
     tbody.innerHTML='';
-    for(const row of data){
-      const tr = document.createElement('tr');
-      tr.dataset.id = row.id;
-      tr.innerHTML = `
-        <td class="idx"></td>
-        <td><input type="checkbox" class="chk" ${row.checked?'checked':''}></td>
-        <td><input type="text" class="item" value="${escapeHtml(row.item_name)}"></td>
-        <td><input type="number" min="1" class="qty" value="${Number(row.quantity)||1}"></td>
-        <td><input type="text" class="note" value="${escapeHtml(row.note||'')}"></td>
-        <td><button class="btn btn-danger del">삭제</button></td>
-      `;
-      tbody.appendChild(tr);
-    }
+    for(const row of (data||[])) tbody.appendChild(makeRow(row));
     refreshIndex();
   }
 
-  // 체크 즉시 업데이트
+  // 즉시 체크 반영
   tbody.addEventListener('change', async (e)=>{
     if(e.target.classList.contains('chk')){
-      const tr = e.target.closest('tr');
-      const id = Number(tr.dataset.id);
+      const tr = e.target.closest('tr'); const id = Number(tr.dataset.id);
       const checked = e.target.checked;
+      if(!id){ refreshIndex(); return; } // 신규 행은 저장 때 반영
       const { error } = await supabase.from('packing_items').update({checked}).eq('id', id);
       if(error){ alert('체크 업데이트 실패: '+error.message); e.target.checked = !checked; }
       refreshIndex();
     }
   });
 
-  // 행 삭제(저장해야 반영)
+  // 삭제 표시
   tbody.addEventListener('click', (e)=>{
-    if(e.target.classList.contains('del')){
-      e.target.closest('tr').dataset._delete = '1';
-      e.target.closest('tr').style.opacity = '0.4';
+    if(e.target.classList.contains('del-btn')){
+      const tr=e.target.closest('tr');
+      tr.dataset._delete='1';
+      tr.style.opacity='0.45';
+      refreshIndex();
     }
   });
 
-  function addEmptyRow(){
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="idx"></td>
-      <td><input type="checkbox" class="chk"></td>
-      <td><input type="text" class="item" placeholder="새 준비물"></td>
-      <td><input type="number" min="1" class="qty" value="1"></td>
-      <td><input type="text" class="note" placeholder="메모"></td>
-      <td><button class="btn btn-danger del">삭제</button></td>
-    `;
-    tbody.appendChild(tr);
-  }
-
   function addEmptyRows(n=1){
-    n = clampInt(n, 1, 200);
-    for(let i=0;i<n;i++) addEmptyRow();
+    n=clampInt(n,1,200);
+    for(let i=0;i<n;i++) tbody.appendChild(makeRow({ checked:false }));
     refreshIndex();
   }
-
   addRowBtn.onclick = ()=> addEmptyRows(addCountEl.value);
   addCountEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ addEmptyRows(addCountEl.value); } });
 
-  // 변경사항 저장: (1) 삭제, (2) 업데이트, (3) 신규 추가
+  // 저장: 삭제 → 업데이트 → 추가
   saveChangesBtn.onclick = async ()=>{
-    // 1) 삭제
-    const toDelete = [...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset._delete==='1' && tr.dataset.id);
+    // 삭제
+    const toDelete=[...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset._delete==='1' && tr.dataset.id);
     if(toDelete.length){
-      const ids = toDelete.map(tr=>Number(tr.dataset.id));
+      const ids=toDelete.map(tr=>Number(tr.dataset.id));
       const { error } = await supabase.from('packing_items').delete().in('id', ids);
       if(error){ alert('삭제 실패: '+error.message); return; }
       toDelete.forEach(tr=>tr.remove());
     }
 
-    // 2) 업데이트
-    const toUpdate = [...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset.id && tr.dataset._delete!=='1');
+    // 업데이트
+    const toUpdate=[...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset.id && tr.dataset._delete!=='1');
     for(const tr of toUpdate){
       const id = Number(tr.dataset.id);
       const item_name = tr.querySelector('.item').value.trim();
       const quantity = Number(tr.querySelector('.qty').value)||1;
       const note = tr.querySelector('.note').value.trim() || null;
-      const { error } = await supabase.from('packing_items')
-        .update({ item_name, quantity, note })
-        .eq('id', id);
+      const { error } = await supabase.from('packing_items').update({ item_name, quantity, note }).eq('id', id);
       if(error){ alert('업데이트 실패: '+error.message); return; }
     }
 
-    // 3) 신규 추가
-    const toInsert = [...tbody.querySelectorAll('tr')].filter(tr=>!tr.dataset.id && tr.dataset._delete!=='1');
-    const payload = [];
+    // 추가
+    const toInsert=[...tbody.querySelectorAll('tr')].filter(tr=>!tr.dataset.id && tr.dataset._delete!=='1');
+    const payload=[];
     for(const tr of toInsert){
       const item_name = tr.querySelector('.item').value.trim();
       if(!item_name) continue;
@@ -214,20 +263,36 @@
       const { error } = await supabase.from('packing_items').insert(payload);
       if(error){ alert('추가 실패: '+error.message); return; }
     }
-
     alert('저장되었습니다.');
     await loadItems();
   };
 
-  // 체크된 항목들 삭제 표시
+  // 체크된 항목 일괄 삭제 표시
   deleteCheckedBtn.onclick = ()=>{
     [...tbody.querySelectorAll('tr')].forEach(tr=>{
       const chk = tr.querySelector('.chk');
-      if(chk && chk.checked){
-        tr.dataset._delete='1';
-        tr.style.opacity='0.4';
-      }
+      if(chk && chk.checked){ tr.dataset._delete='1'; tr.style.opacity='0.45'; }
     });
+  };
+
+  // 복제(체크는 모두 해제)
+  document.getElementById('doClone').onclick = async ()=>{
+    const newTitle = document.getElementById('cloneTitle').value.trim();
+    if(!newTitle){ alert('새 여행제목을 입력하세요.'); return; }
+    if(newTitle === tripTitle){ alert('다른 이름을 입력하세요.'); return; }
+
+    const { data, error } = await supabase
+      .from('packing_items')
+      .select('item_name, quantity, note')
+      .eq('trip_title', tripTitle);
+    if(error){ alert('원본 로드 실패: '+error.message); return; }
+    if(!data || !data.length){ alert('복제할 항목이 없습니다.'); return; }
+
+    const toInsert = data.map(r=>({ trip_title:newTitle, item_name:r.item_name, quantity:r.quantity, checked:false, note:r.note }));
+    const { error: insErr } = await supabase.from('packing_items').insert(toInsert);
+    if(insErr){ alert('복제 실패: '+insErr.message); return; }
+    alert('복제 완료!');
+    location.href = 'packing_manage.html?title='+encodeURIComponent(newTitle);
   };
 
   loadItems();

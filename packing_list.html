@@ -3,54 +3,80 @@
 <head>
 <meta charset="UTF-8" />
 <title>여행 준비물 - 전체 목록</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#f6f8fa; margin:0; }
-  .wrap{ max-width:1100px; margin:24px auto; background:#fff; padding:18px; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,0.06);}
-  .top{ display:flex; gap:12px; align-items:center; }
+  :root{
+    --bg:#f6f8fa; --card:#fff; --bd:#e9ecef; --txt:#111; --muted:#6b7280;
+    --pri:#0d6efd; --pri-ink:#fff; --danger:#dc3545; --danger-ink:#fff;
+    --radius:14px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--bg); color:var(--txt); font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, sans-serif; }
+  .wrap{ max-width:920px; margin:0 auto; padding:12px; }
+  .top{ display:flex; align-items:center; justify-content:space-between; margin:10px 4px 12px; }
   h1{ font-size:20px; margin:0; }
-  .right{ margin-left:auto; }
-  a.link{ text-decoration:none; color:#0d6efd; font-weight:600; }
-  table{ width:100%; border-collapse:collapse; margin-top:14px; }
-  th, td{ border-bottom:1px solid #eee; padding:10px; text-align:left; }
-  th{ background:#fafafa; }
-  input[type="text"]{ border:1px solid #ddd; border-radius:8px; padding:8px; }
-  .btn{ border:0; border-radius:8px; padding:8px 11px; cursor:pointer; font-weight:600; }
-  .btn-primary{ background:#0d6efd; color:#fff; }
-  .btn-gray{ background:#e9ecef; }
-  .btn-danger{ background:#dc3545; color:#fff; }
-  .row{ display:flex; gap:10px; align-items:center; margin:12px 0; flex-wrap:wrap; }
-  .muted{ color:#666; font-size:13px; }
+  a.link{ color:var(--pri); font-weight:700; text-decoration:none; }
+
+  .card{ background:var(--card); border-radius:var(--radius); box-shadow:0 8px 24px rgba(0,0,0,.06); padding:14px; }
+
+  .create-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  input[type="text"]{ border:1px solid var(--bd); border-radius:12px; padding:12px; font-size:16px; }
+  .btn{ border:0; border-radius:12px; padding:12px 14px; font-weight:800; cursor:pointer; }
+  .btn-pri{ background:var(--pri); color:var(--pri-ink); }
+  .btn-gray{ background:#eef2f7; color:#1f2937; }
+  .btn-danger{ background:var(--danger); color:#fff; }
+
+  /* list table to cards on mobile */
+  table{ width:100%; border-collapse:collapse; }
+  th,td{ padding:10px; border-bottom:1px solid #eee; text-align:left; }
+  th{ background:#fafafa; font-size:13px; color:#374151; }
+
+  @media (max-width:768px){
+    table, thead, tbody, th, td, tr{ display:block; }
+    thead{ display:none; }
+    tbody tr{
+      background:var(--card); border:1px solid var(--bd); border-radius:12px;
+      padding:10px; margin:10px 0; box-shadow:0 4px 12px rgba(0,0,0,.05);
+    }
+    td{ border:0; padding:6px 4px; }
+    .row1{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .title{ font-size:16px; font-weight:900; }
+    .muted{ color:#6b7280; font-size:13px; }
+    .actions{ display:flex; gap:8px; margin-top:8px; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top">
     <h1>여행 준비물 - 전체 목록</h1>
-    <div class="right">
-      <a class="link" href="packing_new.html">신규 입력</a>
+    <a class="link" href="packing_new.html">신규 입력</a>
+  </div>
+
+  <div class="card" style="margin:8px 0 14px;">
+    <div class="muted" style="margin-bottom:6px;">새 여행제목(빈 목록) 만들기</div>
+    <div class="create-row">
+      <input type="text" id="newTitle" placeholder="예) 2025 다낭" style="flex:1; min-width:220px;" />
+      <button class="btn btn-pri" id="createEmpty">빈 목록 생성</button>
     </div>
+    <div class="muted" style="margin-top:6px;">※ 제목만 생성한 뒤 관리 페이지에서 항목을 추가할 수 있어요.</div>
   </div>
 
-  <div class="row">
-    <input type="text" id="newTitle" placeholder="새 여행제목 (빈 목록 생성)" />
-    <button class="btn btn-primary" id="createEmpty">빈 목록 생성</button>
-    <span class="muted">※ 제목만 미리 만들고, 관리 페이지에서 항목을 추가할 수 있습니다.</span>
+  <div class="card">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th style="width:40px;">#</th>
+          <th>여행제목</th>
+          <th style="width:120px;">항목수</th>
+          <th style="width:140px;">체크완료</th>
+          <th style="width:320px;">작업</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
-
-  <table id="tbl">
-    <thead>
-      <tr>
-        <th style="width:34px;">#</th>
-        <th>여행제목</th>
-        <th style="width:160px;">항목수</th>
-        <th style="width:180px;">체크완료</th>
-        <th style="width:320px;">작업</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
 </div>
 
 <script>
@@ -60,77 +86,69 @@
   );
 
   const tbody = document.querySelector('#tbl tbody');
+
   function escapeHtml(s=''){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
   async function loadList(){
-    // distinct trip_title
     const { data, error } = await supabase
       .from('packing_items')
-      .select('trip_title, checked', { count: 'exact', head: false });
+      .select('trip_title, checked');
 
     if(error){ alert('불러오기 실패: '+error.message); return; }
-    // 집계
     const map = new Map();
-    for(const r of data){
+    for(const r of (data||[])){
       if(!map.has(r.trip_title)) map.set(r.trip_title, { total:0, checked:0 });
       const agg = map.get(r.trip_title);
-      agg.total += 1;
-      if(r.checked) agg.checked += 1;
+      agg.total += 1; if(r.checked) agg.checked += 1;
     }
     const titles = [...map.keys()].sort((a,b)=> a.localeCompare(b, 'ko'));
 
     tbody.innerHTML='';
     let idx=1;
+    if(titles.length===0){
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td colspan="5" style="text-align:center; color:#666;">아직 데이터가 없습니다. 상단에서 새 제목을 만들어 시작해 보세요.</td>`;
+      tbody.appendChild(tr); return;
+    }
     for(const t of titles){
       const agg = map.get(t);
-      const tr = document.createElement('tr');
+      const tr=document.createElement('tr');
       tr.innerHTML = `
         <td>${idx++}</td>
-        <td>${escapeHtml(t)}</td>
+        <td><div class="title">${escapeHtml(t)}</div></td>
         <td>${agg.total} 개</td>
         <td>${agg.checked} / ${agg.total}</td>
         <td>
-          <button class="btn btn-primary" onclick="location.href='packing_manage.html?title=${encodeURIComponent(t)}'">불러오기</button>
-          <button class="btn btn-gray" onclick="cloneTitle('${encodeURIComponent(t)}')">다른이름으로 복제</button>
-          <button class="btn btn-danger" onclick="deleteTitle('${encodeURIComponent(t)}')">삭제</button>
+          <div class="actions">
+            <button class="btn btn-pri" onclick="location.href='packing_manage.html?title=${encodeURIComponent(t)}'">불러오기</button>
+            <button class="btn btn-gray" onclick="cloneTitle('${encodeURIComponent(t)}')">다른이름으로 복제</button>
+            <button class="btn btn-danger" onclick="deleteTitle('${encodeURIComponent(t)}')">삭제</button>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
     }
-
-    // 항목이 전혀 없을 때(빈 DB) 안내
-    if(!titles.length){
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td colspan="5" style="text-align:center; color:#666;">아직 데이터가 없습니다. 우측 상단 '신규 입력'을 눌러 시작하세요.</td>`;
-      tbody.appendChild(tr);
-    }
   }
 
- async function cloneTitle(encTitle){
-  const title = decodeURIComponent(encTitle);
-  const newTitle = prompt('새 여행제목으로 복제합니다. 입력하세요:', title+' 복제본');
-  if(!newTitle || newTitle.trim()===title) return;
+  async function cloneTitle(encTitle){
+    const title = decodeURIComponent(encTitle);
+    const newTitle = prompt('새 여행제목으로 복제합니다. 입력하세요:', title+' 복제본');
+    if(!newTitle || newTitle.trim()===title) return;
 
-  const { data, error } = await supabase
-    .from('packing_items')
-    .select('item_name, quantity, note')
-    .eq('trip_title', title);
-  if(error){ alert('원본 로드 실패: '+error.message); return; }
-  if(!data || !data.length){ alert('복제할 항목이 없습니다.'); return; }
+    const { data, error } = await supabase
+      .from('packing_items')
+      .select('item_name, quantity, note')
+      .eq('trip_title', title);
+    if(error){ alert('원본 로드 실패: '+error.message); return; }
+    if(!data || !data.length){ alert('복제할 항목이 없습니다.'); return; }
 
-  // ✅ 체크 상태는 모두 false로 초기화
-  const toInsert = data.map(r=>({
-    trip_title: newTitle.trim(),
-    item_name: r.item_name,
-    quantity: r.quantity,
-    checked: false,
-    note: r.note
-  }));
-  const { error: insErr } = await supabase.from('packing_items').insert(toInsert);
-  if(insErr){ alert('복제 실패: '+insErr.message); return; }
-  alert('복제 완료!');
-  loadList();
-}
+    // 체크 모두 해제하여 복제
+    const toInsert = data.map(r=>({ trip_title:newTitle.trim(), item_name:r.item_name, quantity:r.quantity, checked:false, note:r.note }));
+    const { error: insErr } = await supabase.from('packing_items').insert(toInsert);
+    if(insErr){ alert('복제 실패: '+insErr.message); return; }
+    alert('복제 완료!');
+    loadList();
+  }
 
   async function deleteTitle(encTitle){
     const title = decodeURIComponent(encTitle);
@@ -141,11 +159,9 @@
     loadList();
   }
 
-  // 빈 목록 생성 (제목만 만들고 관리 페이지에서 추가)
   document.getElementById('createEmpty').onclick = async ()=>{
     const newTitle = document.getElementById('newTitle').value.trim();
     if(!newTitle){ alert('제목을 입력하세요.'); return; }
-    // placeholder로 빈 아이템 하나 생성 후 관리 페이지에서 이어서 작업
     const { error } = await supabase.from('packing_items')
       .insert([{ trip_title: newTitle, item_name: '(새 항목)', quantity: 1, checked: false, note: null }]);
     if(error){ alert('생성 실패: '+error.message); return; }
