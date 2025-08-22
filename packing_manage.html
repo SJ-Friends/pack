@@ -14,30 +14,29 @@
   .right{ margin-left:auto; }
   a.link{ text-decoration:none; color:#0d6efd; font-weight:600; }
 
-  /* 표 레이아웃: 준비물은 유동, 나머지는 고정폭 */
+  /* 표 레이아웃 */
   table{ width:100%; border-collapse:collapse; table-layout:fixed; }
   th, td{ border-bottom:1px solid #eee; padding:10px; text-align:left; vertical-align:middle; }
   th{ background:#fafafa; }
-  /* 열 너비 */
-  th.col-check, td.col-check{ width:44px; text-align:center; }   /* ✔ 체크 열: 딱 맞게 */
-  th.col-qty,   td.col-qty  { width:60px;  text-align:center; }
-  th.col-del,   td.col-del  { width:70px;  text-align:center; }
-  th.col-note,  td.col-note { width:180px; }                    /* 비고는 적당히 */
-  th.col-item,  td.col-item { width:auto; }                     /* 준비물: 남는 공간 전부 */
+
+  /* 열 폭 정의 */
+  th.col-check, td.col-check{ width:44px; text-align:center; }   /* 체크: 딱 맞게 */
+  th.col-qty,   td.col-qty  { width:48px; text-align:center; }  /* 수량: 한 자릿수 크기 */
+  th.col-del,   td.col-del  { width:70px; text-align:center; }  /* 삭제 버튼 */
+  th.col-note,  td.col-note { width:20%; }                       /* 비고: 남는 자리 중 20%만 */
+  th.col-item,  td.col-item { width:auto; }                      /* 준비물: 나머지 대부분 */
 
   input[type="text"], input[type="number"]{
-    border:1px solid #ddd; border-radius:8px; padding:8px;
-    width:100%;
+    border:1px solid #ddd; border-radius:8px; padding:8px; width:100%;
   }
-  /* 체크박스 크기/정렬 */
-  .chk{ width:22px; height:22px; accent-color:#0d6efd; display:inline-block; }
-  /* 수량은 숫자 한자리도 깔끔하게 */
-  .qty{ width:56px; text-align:center; }
+  .chk{ width:22px; height:22px; accent-color:#0d6efd; }
+  .qty{ width:100%; text-align:center; } /* 셀 내부 폭은 48px로 제한됨 */
 
   .btn{ border:0; border-radius:8px; padding:9px 12px; cursor:pointer; font-weight:600; }
   .btn-primary{ background:#0d6efd; color:#fff; }
   .btn-gray{ background:#e9ecef; }
   .btn-danger{ background:#dc3545; color:#fff; }
+
   .row{ display:flex; gap:10px; align-items:center; margin:12px 0; flex-wrap:wrap; }
   .pill{ padding:6px 10px; border-radius:999px; background:#f1f3f5; }
   .muted{ color:#666; font-size:13px; }
@@ -46,9 +45,9 @@
   .add-pack{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .add-pack input[type="number"]{ width:100px; }
 
-  /* 모바일에서 줄바꿈 여백 조금 */
+  /* 모바일에서 비고 폭 조금 더 줄이기 */
   @media (max-width: 480px){
-    th.col-note, td.col-note { width:140px; }
+    th.col-note, td.col-note { width:30%; }
   }
 </style>
 </head>
@@ -87,7 +86,7 @@
   </table>
 
   <div class="row">
-    <div class="muted">※ 체크박스는 즉시 토글되지만, 수량/비고/추가/삭제는 <b>변경사항 저장</b>을 눌러야 반영됩니다.</div>
+    <div class="muted">※ 체크는 즉시 반영되며, 수량/비고/추가/삭제는 <b>변경사항 저장</b>을 눌러야 반영됩니다.</div>
   </div>
 
   <hr style="border:none; border-top:1px solid #eee; margin:18px 0;">
@@ -118,7 +117,7 @@
   const addCountEl = document.getElementById('addCount');
 
   const escapeHtml = (s='')=> s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
-  const clampInt = (v, min, max)=>Math.max(min, Math.min(max, Math.floor(Number(v)||min)));
+  const clampInt = (v,min,max)=> Math.max(min, Math.min(max, Math.floor(Number(v)||min)));
 
   function refreshCounters(){
     totalCountEl.textContent = tbody.querySelectorAll('tr').length;
@@ -190,16 +189,16 @@
   // 저장: 삭제 → 업데이트 → 추가
   saveChangesBtn.onclick = async ()=>{
     // 삭제
-    const toDelete = [...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset._delete==='1' && tr.dataset.id);
+    const toDelete=[...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset._delete==='1' && tr.dataset.id);
     if(toDelete.length){
-      const ids = toDelete.map(tr=>Number(tr.dataset.id));
+      const ids=toDelete.map(tr=>Number(tr.dataset.id));
       const { error } = await supabase.from('packing_items').delete().in('id', ids);
       if(error){ alert('삭제 실패: '+error.message); return; }
       toDelete.forEach(tr=>tr.remove());
     }
 
     // 업데이트
-    const toUpdate = [...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset.id && tr.dataset._delete!=='1');
+    const toUpdate=[...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset.id && tr.dataset._delete!=='1');
     for(const tr of toUpdate){
       const id = Number(tr.dataset.id);
       const item_name = tr.querySelector('.item').value.trim();
@@ -210,8 +209,8 @@
     }
 
     // 추가
-    const toInsert = [...tbody.querySelectorAll('tr')].filter(tr=>!tr.dataset.id && tr.dataset._delete!=='1');
-    const payload = [];
+    const toInsert=[...tbody.querySelectorAll('tr')].filter(tr=>!tr.dataset.id && tr.dataset._delete!=='1');
+    const payload=[];
     for(const tr of toInsert){
       const item_name = tr.querySelector('.item').value.trim();
       if(!item_name) continue;
@@ -233,10 +232,7 @@
   deleteCheckedBtn.onclick = ()=>{
     [...tbody.querySelectorAll('tr')].forEach(tr=>{
       const chk = tr.querySelector('.chk');
-      if(chk && chk.checked){
-        tr.dataset._delete='1';
-        tr.style.opacity='0.4';
-      }
+      if(chk && chk.checked){ tr.dataset._delete='1'; tr.style.opacity='0.4'; }
     });
   };
 
