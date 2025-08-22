@@ -19,18 +19,22 @@
   th, td{ border-bottom:1px solid #eee; padding:10px; text-align:left; vertical-align:middle; }
   th{ background:#fafafa; }
 
-  /* 열 폭 정의 */
-  th.col-check, td.col-check{ width:44px; text-align:center; }   /* 체크: 딱 맞게 */
-  th.col-qty,   td.col-qty  { width:48px; text-align:center; }  /* 수량: 한 자릿수 크기 */
-  th.col-del,   td.col-del  { width:70px; text-align:center; }  /* 삭제 버튼 */
-  th.col-note,  td.col-note { width:20%; }                       /* 비고: 남는 자리 중 20%만 */
-  th.col-item,  td.col-item { width:auto; }                      /* 준비물: 나머지 대부분 */
+  /* ✅ 열 폭: 준비물은 자동, 나머지는 최소화/유연 축소 */
+  th.col-check, td.col-check{ width:40px; text-align:center; }
+  th.col-qty,   td.col-qty  { width:44px; text-align:center; }
+  th.col-del,   td.col-del  { width:64px; text-align:center; }
+
+  /* 핵심: 비고는 clamp로 과감히 줄어들도록(좁을수록 더 작게) */
+  th.col-note,  td.col-note { width: clamp(90px, 18vw, 200px); }
+
+  /* 준비물은 남는 공간 전부 차지 */
+  th.col-item,  td.col-item { width:auto; }
 
   input[type="text"], input[type="number"]{
     border:1px solid #ddd; border-radius:8px; padding:8px; width:100%;
   }
-  .chk{ width:22px; height:22px; accent-color:#0d6efd; }
-  .qty{ width:100%; text-align:center; } /* 셀 내부 폭은 48px로 제한됨 */
+  .chk{ width:20px; height:20px; accent-color:#0d6efd; display:inline-block; }
+  .qty{ text-align:center; } /* 셀 자체가 44px이므로 한 자릿수에 딱 맞음 */
 
   .btn{ border:0; border-radius:8px; padding:9px 12px; cursor:pointer; font-weight:600; }
   .btn-primary{ background:#0d6efd; color:#fff; }
@@ -45,9 +49,10 @@
   .add-pack{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .add-pack input[type="number"]{ width:100px; }
 
-  /* 모바일에서 비고 폭 조금 더 줄이기 */
+  /* 초협소(세로)에서는 비고를 더 줄여서 준비물에 공간 몰아주기 */
   @media (max-width: 480px){
-    th.col-note, td.col-note { width:30%; }
+    th.col-note, td.col-note { width: clamp(72px, 22vw, 160px); }
+    th.col-del, td.col-del   { width:56px; }
   }
 </style>
 </head>
@@ -74,7 +79,7 @@
   <table id="tbl">
     <thead>
       <tr>
-        <!-- 순번 열 제거 -->
+        <!-- 순번 열 제거 상태 유지 -->
         <th class="col-check">체크</th>
         <th class="col-item">준비물</th>
         <th class="col-qty">수량</th>
