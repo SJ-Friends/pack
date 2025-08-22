@@ -14,27 +14,26 @@
   .right{ margin-left:auto; }
   a.link{ text-decoration:none; color:#0d6efd; font-weight:600; }
 
-  /* 표 레이아웃 */
-  table{ width:100%; border-collapse:collapse; table-layout:fixed; }
+  /* ── 표 레이아웃 고정: 준비물 55% (이전 대비 ~30% 확대) ───────────────────── */
+  table.table-fixed{ width:100%; border-collapse:collapse; table-layout:fixed; }
   th, td{ border-bottom:1px solid #eee; padding:10px; text-align:left; vertical-align:middle; }
-  th{ background:#fafafa; }
+  thead th{ background:#fafafa; }
 
-  /* ✅ 열 폭: 준비물은 자동, 나머지는 최소화/유연 축소 */
-  th.col-check, td.col-check{ width:40px; text-align:center; }
-  th.col-qty,   td.col-qty  { width:44px; text-align:center; }
-  th.col-del,   td.col-del  { width:64px; text-align:center; }
+  /* 콘텐츠가 넘치면 말줄임 처리 */
+  .table-fixed th, .table-fixed td{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-  /* 핵심: 비고는 clamp로 과감히 줄어들도록(좁을수록 더 작게) */
-  th.col-note,  td.col-note { width: clamp(90px, 18vw, 200px); }
+  /* 고정/비율 폭 설정 */
+  .col-check{ width:40px; text-align:center; }   /* 체크박스 칼럼 */
+  .col-item { width:55%; }                       /* 준비물: 가장 넓게 확보 */
+  .col-qty  { width:50px; text-align:center; }   /* 수량: 한 자릿수 중심 */
+  .col-note { width:25%; }                       /* 비고: 남는 공간 일부만 */
+  .col-del  { width:70px; text-align:center; }   /* 삭제 버튼 */
 
-  /* 준비물은 남는 공간 전부 차지 */
-  th.col-item,  td.col-item { width:auto; }
-
+  /* 입력 박스 */
   input[type="text"], input[type="number"]{
     border:1px solid #ddd; border-radius:8px; padding:8px; width:100%;
   }
-  .chk{ width:20px; height:20px; accent-color:#0d6efd; display:inline-block; }
-  .qty{ text-align:center; } /* 셀 자체가 44px이므로 한 자릿수에 딱 맞음 */
+  .chk{ width:20px; height:20px; accent-color:#0d6efd; }
 
   .btn{ border:0; border-radius:8px; padding:9px 12px; cursor:pointer; font-weight:600; }
   .btn-primary{ background:#0d6efd; color:#fff; }
@@ -49,10 +48,10 @@
   .add-pack{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .add-pack input[type="number"]{ width:100px; }
 
-  /* 초협소(세로)에서는 비고를 더 줄여서 준비물에 공간 몰아주기 */
-  @media (max-width: 480px){
-    th.col-note, td.col-note { width: clamp(72px, 22vw, 160px); }
-    th.col-del, td.col-del   { width:56px; }
+  /* 아주 좁은 화면에서 삭제/비고 약간 더 줄이기 */
+  @media (max-width: 420px){
+    .col-del{ width:62px; }
+    .col-note{ width:22%; }
   }
 </style>
 </head>
@@ -76,10 +75,10 @@
     <span class="pill">체크됨: <span id="checkedCount" class="count">0</span>개</span>
   </div>
 
-  <table id="tbl">
+  <table id="tbl" class="table-fixed">
     <thead>
       <tr>
-        <!-- 순번 열 제거 상태 유지 -->
+        <!-- 순번 열은 제거 -->
         <th class="col-check">체크</th>
         <th class="col-item">준비물</th>
         <th class="col-qty">수량</th>
