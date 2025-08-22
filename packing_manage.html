@@ -17,6 +17,7 @@
   th, td{ border-bottom:1px solid #eee; padding:10px; text-align:left; }
   th{ background:#fafafa; }
   input[type="text"], input[type="number"]{ border:1px solid #ddd; border-radius:8px; padding:8px; width:100%; }
+  .qty{ width:56px; text-align:center; }         /* ★ 수량 입력칸 축소 */
   .btn{ border:0; border-radius:8px; padding:9px 12px; cursor:pointer; font-weight:600; }
   .btn-primary{ background:#0d6efd; color:#fff; }
   .btn-gray{ background:#e9ecef; }
@@ -56,7 +57,7 @@
         <th style="width:34px;">#</th>
         <th style="width:36px;">체크</th>
         <th>준비물</th>
-        <th style="width:110px;">수량</th>
+        <th style="width:60px;">수량</th>   <!-- ★ 110 → 60 -->
         <th>비고</th>
         <th style="width:70px;">삭제</th>
       </tr>
@@ -124,7 +125,7 @@
         <td class="idx"></td>
         <td><input type="checkbox" class="chk" ${row.checked?'checked':''}></td>
         <td><input type="text" class="item" value="${escapeHtml(row.item_name)}"></td>
-        <td><input type="number" min="1" class="qty" value="${Number(row.quantity)||1}"></td>
+        <td><input type="number" min="1" class="qty" value="${Number(row.quantity)||1}"></td> <!-- ★ .qty 적용 -->
         <td><input type="text" class="note" value="${escapeHtml(row.note||'')}"></td>
         <td><button class="btn btn-danger del">삭제</button></td>
       `;
@@ -159,7 +160,7 @@
       <td class="idx"></td>
       <td><input type="checkbox" class="chk"></td>
       <td><input type="text" class="item" placeholder="새 준비물"></td>
-      <td><input type="number" min="1" class="qty" value="1"></td>
+      <td><input type="number" min="1" class="qty" value="1"></td> <!-- ★ .qty 적용 -->
       <td><input type="text" class="note" placeholder="메모"></td>
       <td><button class="btn btn-danger del">삭제</button></td>
     `;
@@ -175,9 +176,8 @@
   addRowBtn.onclick = ()=> addEmptyRows(addCountEl.value);
   addCountEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ addEmptyRows(addCountEl.value); } });
 
-  // 변경사항 저장: (1) 삭제, (2) 업데이트, (3) 신규 추가
+  // 변경사항 저장
   saveChangesBtn.onclick = async ()=>{
-    // 1) 삭제
     const toDelete = [...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset._delete==='1' && tr.dataset.id);
     if(toDelete.length){
       const ids = toDelete.map(tr=>Number(tr.dataset.id));
@@ -186,7 +186,6 @@
       toDelete.forEach(tr=>tr.remove());
     }
 
-    // 2) 업데이트
     const toUpdate = [...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset.id && tr.dataset._delete!=='1');
     for(const tr of toUpdate){
       const id = Number(tr.dataset.id);
@@ -199,7 +198,6 @@
       if(error){ alert('업데이트 실패: '+error.message); return; }
     }
 
-    // 3) 신규 추가
     const toInsert = [...tbody.querySelectorAll('tr')].filter(tr=>!tr.dataset.id && tr.dataset._delete!=='1');
     const payload = [];
     for(const tr of toInsert){
@@ -219,7 +217,6 @@
     await loadItems();
   };
 
-  // 체크된 항목들 삭제 표시
   deleteCheckedBtn.onclick = ()=>{
     [...tbody.querySelectorAll('tr')].forEach(tr=>{
       const chk = tr.querySelector('.chk');

@@ -86,9 +86,9 @@
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="idx"></td>
-      <td><input type="text" class="item" placeholder="예) 선크림" value="${escapeHtml(data.item_name)}" /></td>
+      <td><input type="text" class="item" placeholder="예) 선크림" value="${escapeHtml(data.item_name)}" style="width:50%;" /></td> <!-- ★ 준비물 절반 -->
       <td><input type="number" class="qty" min="1" value="${Number(data.quantity)||1}" style="width:100%;" /></td>
-      <td><input type="text" class="note" placeholder="메모" value="${escapeHtml(data.note||'')}" /></td>
+      <td><input type="text" class="note" placeholder="메모" value="${escapeHtml(data.note||'')}" style="width:50%;" /></td> <!-- ★ 비고 절반 -->
       <td><button class="btn btn-danger btn-sm del">삭제</button></td>
     `;
     tbody.appendChild(tr);
