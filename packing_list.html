@@ -22,6 +22,8 @@
   .btn-danger{ background:#dc3545; color:#fff; }
   .row{ display:flex; gap:10px; align-items:center; margin:12px 0; flex-wrap:wrap; }
   .muted{ color:#666; font-size:13px; }
+  td.title-cell{ color:#0d6efd; font-weight:600; cursor:pointer; }
+  td.title-cell:hover{ text-decoration:underline; }
 </style>
 </head>
 <body>
@@ -44,9 +46,8 @@
       <tr>
         <th style="width:34px;">#</th>
         <th>여행제목</th>
-        <!-- 항목수 열 제거 -->
         <th style="width:180px;">체크완료</th>
-        <th style="width:320px;">작업</th>
+        <th style="width:220px;">작업</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -63,13 +64,12 @@
   function escapeHtml(s=''){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
   async function loadList(){
-    // created_at 포함해서 불러오기
     const { data, error } = await supabase
       .from('packing_items')
       .select('trip_title, checked, created_at');
 
     if(error){ alert('불러오기 실패: '+error.message); return; }
-    // 집계 + 최신 생성 시각 추출
+
     const map = new Map();
     for(const r of (data||[])){
       if(!map.has(r.trip_title)) map.set(r.trip_title, { total:0, checked:0, last:0 });
@@ -79,7 +79,7 @@
       const t = r.created_at ? new Date(r.created_at).getTime() : 0;
       if(t > agg.last) agg.last = t;
     }
-    // 최신 생성순 내림차순
+
     const titles = [...map.keys()].sort((a,b)=> (map.get(b).last - map.get(a).last));
 
     tbody.innerHTML='';
@@ -89,11 +89,10 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${idx++}</td>
-        <td>${escapeHtml(t)}</td>
+        <td class="title-cell" onclick="location.href='packing_manage.html?title=${encodeURIComponent(t)}'">${escapeHtml(t)}</td>
         <td>${agg.checked} / ${agg.total}</td>
         <td>
-          <button class="btn btn-primary" onclick="location.href='packing_manage.html?title=${encodeURIComponent(t)}'">불러오기</button>
-          <button class="btn btn-gray" onclick="cloneTitle('${encodeURIComponent(t)}')">복제</button> <!-- ★ 라벨 변경 -->
+          <button class="btn btn-gray" onclick="cloneTitle('${encodeURIComponent(t)}')">복제</button>
           <button class="btn btn-danger" onclick="deleteTitle('${encodeURIComponent(t)}')">삭제</button>
         </td>
       `;
