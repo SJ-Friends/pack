@@ -71,7 +71,8 @@
 </div>
 
 <script>
-  const supabase = window.supabase.createClient(
+  // ===== Supabase 클라이언트 전역 방식으로 생성 =====
+  window.sb = window.supabase.createClient(
     'https://xxmtxuhcdzidhrefrvwf.supabase.co',
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bXR4dWhjZHppZGhyZWZydndmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwODAyNTQsImV4cCI6MjA1OTY1NjI1NH0.TaCCDlJvKrif_pZY038Qkglip8h-Qqjp2w2GlKwvoVg'
   );
@@ -86,9 +87,9 @@
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="idx"></td>
-      <td><input type="text" class="item" placeholder="예) 선크림" value="${escapeHtml(data.item_name)}" style="width:50%;" /></td> <!-- ★ 준비물 절반 -->
+      <td><input type="text" class="item" placeholder="예) 선크림" value="${escapeHtml(data.item_name)}" style="width:50%;" /></td>
       <td><input type="number" class="qty" min="1" value="${Number(data.quantity)||1}" style="width:100%;" /></td>
-      <td><input type="text" class="note" placeholder="메모" value="${escapeHtml(data.note||'')}" style="width:50%;" /></td> <!-- ★ 비고 절반 -->
+      <td><input type="text" class="note" placeholder="메모" value="${escapeHtml(data.note||'')}" style="width:50%;" /></td>
       <td><button class="btn btn-danger btn-sm del">삭제</button></td>
     `;
     tbody.appendChild(tr);
@@ -109,7 +110,9 @@
     return Math.max(min, Math.min(max, num));
   }
 
-  function escapeHtml(s=''){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+  function escapeHtml(s=''){
+    return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
 
   addRowBtn.onclick = ()=> addRows(addCountEl.value);
   addCountEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ addRows(addCountEl.value); } });
@@ -125,7 +128,11 @@
 
   saveAllBtn.onclick = async ()=>{
     const title = document.getElementById('trip_title').value.trim();
-    if(!title){ alert('여행제목을 입력하세요.'); return; }
+    if(!title){
+      alert('여행제목을 입력하세요.');
+      return;
+    }
+
     const rows = [...tbody.querySelectorAll('tr')].map(tr=>{
       return {
         item_name: tr.querySelector('.item').value.trim(),
@@ -134,7 +141,10 @@
       }
     }).filter(r=>r.item_name);
 
-    if(rows.length===0){ alert('등록할 준비물 행이 없습니다.'); return; }
+    if(rows.length===0){
+      alert('등록할 준비물 행이 없습니다.');
+      return;
+    }
 
     const payload = rows.map(r=>({
       trip_title: title,
@@ -144,8 +154,13 @@
       note: r.note || null
     }));
 
-    const {error} = await supabase.from('packing_items').insert(payload);
-    if(error){ alert('저장 실패: '+error.message); return; }
+    const {error} = await sb.from('packing_items').insert(payload);
+
+    if(error){
+      alert('저장 실패: '+error.message);
+      return;
+    }
+
     alert('저장되었습니다!');
     location.href = 'packing_manage.html?title='+encodeURIComponent(title);
   };
