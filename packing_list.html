@@ -55,53 +55,42 @@
 </div>
 
 <script>
-  const supabase = window.supabase.createClient(
+  // ===== Supabase 클라이언트 전역 변수로 생성 =====
+  window.sb = window.supabase.createClient(
     'https://xxmtxuhcdzidhrefrvwf.supabase.co',
-    'YOUR_ANON_PUBLIC_KEY'
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bXR4dWhjZHppZGhyZWZydndmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwODAyNTQsImV4cCI6MjA1OTY1NjI1NH0.TaCCDlJvKrif_pZY038Qkglip8h-Qqjp2w2GlKwvoVg'
   );
 
   const tbody = document.querySelector('#tbl tbody');
 
-  function escapeHtml(s=''){
-    return s.replace(/[&<>"']/g, m=>({
+  function escapeHtml(s=''){ 
+    return s.replace(/[&<>"']/g, m=>({ 
       '&':'&amp;',
       '<':'&lt;',
       '>':'&gt;',
       '"':'&quot;',
-      "'":'&#39;'
-    }[m]));
+      "'":'&#39;' 
+    }[m])); 
   }
 
   async function loadList(){
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('packing_items')
-      .select('*');
+      .select('trip_title, checked, created_at');
 
-    console.log("DATA:", data);
-    console.log("ERROR:", error);
-
-    if(error){
-      alert('불러오기 실패: ' + error.message);
-      return;
-    }
-
-    if(!data || data.length === 0){
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="4" style="text-align:center; color:#666;">
-            아직 데이터가 없습니다. 우측 상단 '신규 입력'을 눌러 시작하세요.
-          </td>
-        </tr>`;
-      return;
+    if(error){ 
+      alert('불러오기 실패: ' + error.message); 
+      return; 
     }
 
     const map = new Map();
 
-    for(const r of data){
-      if(!map.has(r.trip_title)){
+    for(const r of (data || [])){
+      if(!map.has(r.trip_title)) 
         map.set(r.trip_title, { total:0, checked:0, last:0 });
-      }
+
       const agg = map.get(r.trip_title);
+
       agg.total += 1;
       if(r.checked) agg.checked += 1;
 
@@ -109,47 +98,58 @@
       if(t > agg.last) agg.last = t;
     }
 
-    const titles = [...map.keys()]
-      .sort((a,b)=> map.get(b).last - map.get(a).last);
+    const titles = [...map.keys()].sort((a,b)=> (map.get(b).last - map.get(a).last));
 
-    tbody.innerHTML='';
-    let idx=1;
+    tbody.innerHTML = '';
+    let idx = 1;
 
     for(const t of titles){
       const agg = map.get(t);
       const tr = document.createElement('tr');
+
       tr.innerHTML = `
         <td>${idx++}</td>
-        <td class="title-cell"
-            onclick="location.href='packing_manage.html?title=${encodeURIComponent(t)}'">
-          ${escapeHtml(t)}
-        </td>
+        <td class="title-cell" onclick="location.href='packing_manage.html?title=${encodeURIComponent(t)}'">${escapeHtml(t)}</td>
         <td>${agg.checked} / ${agg.total}</td>
         <td>
-          <button class="btn btn-gray"
-            onclick="cloneTitle('${encodeURIComponent(t)}')">복제</button>
-          <button class="btn btn-danger"
-            onclick="deleteTitle('${encodeURIComponent(t)}')">삭제</button>
+          <button class="btn btn-gray" onclick="cloneTitle('${encodeURIComponent(t)}')">복제</button>
+          <button class="btn btn-danger" onclick="deleteTitle('${encodeURIComponent(t)}')">삭제</button>
         </td>
       `;
+
+      tbody.appendChild(tr);
+    }
+
+    if(!titles.length){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="4" style="text-align:center; color:#666;">아직 데이터가 없습니다. 우측 상단 '신규 입력'을 눌러 시작하세요.</td>`;
       tbody.appendChild(tr);
     }
   }
 
   async function cloneTitle(encTitle){
     const title = decodeURIComponent(encTitle);
-    const newTitle = prompt('새 여행제목으로 복제합니다. 입력하세요:', title+' 복제본');
-    if(!newTitle || newTitle.trim()===title) return;
 
-    const { data, error } = await supabase
+    const newTitle = prompt('새 여행제목으로 복제합니다. 입력하세요:', title+' 복제본');
+
+    if(!newTitle || newTitle.trim() === title) return;
+
+    const { data, error } = await sb
       .from('packing_items')
       .select('item_name, quantity, note')
       .eq('trip_title', title);
 
-    if(error){ alert('원본 로드 실패: '+error.message); return; }
-    if(!data || !data.length){ alert('복제할 항목이 없습니다.'); return; }
+    if(error){ 
+      alert('원본 로드 실패: ' + error.message); 
+      return; 
+    }
 
-    const toInsert = data.map(r=>({
+    if(!data || !data.length){ 
+      alert('복제할 항목이 없습니다.'); 
+      return; 
+    }
+
+    const toInsert = data.map(r => ({
       trip_title: newTitle.trim(),
       item_name: r.item_name,
       quantity: r.quantity,
@@ -157,10 +157,14 @@
       note: r.note
     }));
 
-    const { error: insErr } =
-      await supabase.from('packing_items').insert(toInsert);
+    const { error: insErr } = await sb
+      .from('packing_items')
+      .insert(toInsert);
 
-    if(insErr){ alert('복제 실패: '+insErr.message); return; }
+    if(insErr){ 
+      alert('복제 실패: ' + insErr.message); 
+      return; 
+    }
 
     alert('복제 완료!');
     loadList();
@@ -168,47 +172,50 @@
 
   async function deleteTitle(encTitle){
     const title = decodeURIComponent(encTitle);
+
     if(!confirm(`'${title}' 전체를 삭제할까요? (되돌릴 수 없습니다)`)) return;
 
-    const { error } =
-      await supabase.from('packing_items')
-        .delete()
-        .eq('trip_title', title);
+    const { error } = await sb
+      .from('packing_items')
+      .delete()
+      .eq('trip_title', title);
 
-    if(error){ alert('삭제 실패: '+error.message); return; }
+    if(error){ 
+      alert('삭제 실패: ' + error.message); 
+      return; 
+    }
 
     alert('삭제되었습니다.');
     loadList();
   }
 
   document.getElementById('createEmpty').onclick = async ()=>{
-    const newTitle =
-      document.getElementById('newTitle').value.trim();
+    const newTitle = document.getElementById('newTitle').value.trim();
 
-    if(!newTitle){
-      alert('제목을 입력하세요.');
-      return;
+    if(!newTitle){ 
+      alert('제목을 입력하세요.'); 
+      return; 
     }
 
-    const { error } =
-      await supabase.from('packing_items')
-        .insert([{
-          trip_title: newTitle,
-          item_name: '(새 항목)',
-          quantity: 1,
-          checked: false,
-          note: null
-        }]);
+    const { error } = await sb
+      .from('packing_items')
+      .insert([{
+        trip_title: newTitle,
+        item_name: '(새 항목)',
+        quantity: 1,
+        checked: false,
+        note: null
+      }]);
 
-    if(error){
-      alert('생성 실패: '+error.message);
-      return;
+    if(error){ 
+      alert('생성 실패: ' + error.message); 
+      return; 
     }
 
-    location.href =
-      'packing_manage.html?title='+encodeURIComponent(newTitle);
+    location.href = 'packing_manage.html?title=' + encodeURIComponent(newTitle);
   };
 
+  // 페이지 로드 시 목록 불러오기
   loadList();
 </script>
 </body>
