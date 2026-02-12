@@ -44,6 +44,7 @@
   .pill{ padding:6px 10px; border-radius:999px; background:#f1f3f5; }
   .muted{ color:#666; font-size:13px; }
   .count{ font-weight:700; }
+  .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
   .sticky-bar{
     position:fixed; left:0; right:0; bottom:0;
@@ -59,11 +60,19 @@
 </style>
 </head>
 <body>
+
 <div class="wrap">
   <div class="top">
     <h1>여행 준비물 - 관리</h1>
     <div class="title-badge" id="titleBadge"></div>
     <div class="right"><a class="link" href="packing_list.html">전체 목록</a></div>
+  </div>
+
+  <div class="row toolbar">
+    <button class="btn btn-primary" id="saveChanges">변경사항 저장</button>
+    <button class="btn btn-danger" id="deleteChecked">체크된 항목 삭제</button>
+    <span class="pill">총: <span id="totalCount" class="count">0</span>개</span>
+    <span class="pill">체크됨: <span id="checkedCount" class="count">0</span>개</span>
   </div>
 
   <table id="tbl" class="table-fixed">
@@ -78,7 +87,6 @@
     </thead>
     <tbody></tbody>
   </table>
-
 </div>
 
 <div class="sticky-bar">
@@ -86,10 +94,9 @@
 </div>
 
 <script>
-  // ===== Supabase 클라이언트 전역 변수로 생성 =====
-  window.sb = window.supabase.createClient(
+  const supabase = window.supabase.createClient(
     'https://xxmtxuhcdzidhrefrvwf.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bXR4dWhjZHppZGhyZWZydndmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwODAyNTQsImV4cCI6MjA1OTY1NjI1NH0.TaCCDlJvKrif_pZY038Qkglip8h-Qqjp2w2GlKwvoVg'
+    'YOUR_ANON_KEY'
   );
 
   const params = new URLSearchParams(location.search);
@@ -101,7 +108,7 @@
   async function loadItems(){
     if(!tripTitle) return;
 
-    const { data, error } = await sb
+    const { data, error } = await supabase
       .from('packing_items')
       .select('*')
       .eq('trip_title', tripTitle);
@@ -118,21 +125,11 @@
       tr.dataset.id = row.id;
 
       tr.innerHTML = `
-        <td class="col-check">
-          <input type="checkbox" class="chk" ${row.checked ? 'checked' : ''}>
-        </td>
-        <td class="col-item">
-          <input type="text" class="item" value="${row.item_name || ''}">
-        </td>
-        <td class="col-qty">
-          <input type="number" class="qty" value="${row.quantity || 1}">
-        </td>
-        <td class="col-note">
-          <input type="text" class="note" value="${row.note || ''}">
-        </td>
-        <td class="col-del">
-          <button class="btn btn-danger del">삭제</button>
-        </td>
+        <td class="col-check"><input type="checkbox" class="chk" ${row.checked ? 'checked' : ''}></td>
+        <td class="col-item"><input type="text" class="item" value="${row.item_name || ''}"></td>
+        <td class="col-qty"><input type="number" class="qty" value="${row.quantity || 1}"></td>
+        <td class="col-note"><input type="text" class="note" value="${row.note || ''}"></td>
+        <td class="col-del"><button class="btn btn-danger del">삭제</button></td>
       `;
 
       tbody.appendChild(tr);
@@ -149,13 +146,9 @@
       const quantity = tr.querySelector('.qty').value;
       const note = tr.querySelector('.note').value;
 
-      const { error } = await sb
+      const { error } = await supabase
         .from('packing_items')
-        .update({
-          item_name,
-          quantity,
-          note
-        })
+        .update({ item_name, quantity, note })
         .eq('id', id);
 
       if(error){
@@ -167,9 +160,11 @@
     alert('저장 완료');
   }
 
+  document.getElementById('saveChanges').onclick = saveChanges;
   document.getElementById('saveChangesSticky').onclick = saveChanges;
 
   loadItems();
 </script>
+
 </body>
 </html>
