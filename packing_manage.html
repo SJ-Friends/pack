@@ -2,13 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<title>여행 준비물 - 관리</title>
+<title>여행 준비물 - 관리!</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   body{
     font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     background:#f6f8fa; margin:0;
+    /* 하단 고정바가 가리지 않도록 여유 공간 확보 */
     padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px));
   }
   .wrap{ max-width:1100px; margin:24px auto; background:#fff; padding:18px; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,0.06);}
@@ -18,18 +19,22 @@
   .right{ margin-left:auto; }
   a.link{ text-decoration:none; color:#0d6efd; font-weight:600; }
 
+  /* ── 표 레이아웃 고정: 준비물 55% ───────────────────── */
   table.table-fixed{ width:100%; border-collapse:collapse; table-layout:fixed; }
   th, td{ border-bottom:1px solid #eee; padding:10px; text-align:left; vertical-align:middle; }
   thead th{ background:#fafafa; }
 
+  /* 콘텐츠 넘치면 말줄임 */
   .table-fixed th, .table-fixed td{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-  .col-check{ width:40px; text-align:center; }
-  .col-item { width:55%; }
-  .col-qty  { width:50px; text-align:center; }
-  .col-note { width:25%; }
-  .col-del  { width:70px; text-align:center; }
+  /* 고정/비율 폭 설정 */
+  .col-check{ width:40px; text-align:center; }   /* 체크박스 */
+  .col-item { width:55%; }                       /* 준비물 */
+  .col-qty  { width:50px; text-align:center; }   /* 수량: 한 자릿수 중심 */
+  .col-note { width:25%; }                       /* 비고 */
+  .col-del  { width:70px; text-align:center; }   /* 삭제 버튼 */
 
+  /* 입력 박스 */
   input[type="text"], input[type="number"]{
     border:1px solid #ddd; border-radius:8px; padding:8px; width:100%;
   }
@@ -45,7 +50,10 @@
   .muted{ color:#666; font-size:13px; }
   .count{ font-weight:700; }
   .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .add-pack{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .add-pack input[type="number"]{ width:100px; }
 
+  /* 하단 고정 저장 바 */
   .sticky-bar{
     position:fixed; left:0; right:0; bottom:0;
     background:#ffffff; border-top:1px solid #eee;
@@ -57,10 +65,15 @@
   .sticky-left{
     margin-right:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap;
   }
+
+  /* 아주 좁은 화면에서 삭제/비고 약간 더 줄이기 */
+  @media (max-width: 420px){
+    .col-del{ width:62px; }
+    .col-note{ width:22%; }
+  }
 </style>
 </head>
 <body>
-
 <div class="wrap">
   <div class="top">
     <h1>여행 준비물 - 관리</h1>
@@ -69,6 +82,11 @@
   </div>
 
   <div class="row toolbar">
+    <div class="add-pack">
+      <span class="muted">몇 건 추가</span>
+      <input type="number" id="addCount" min="1" max="200" value="1" />
+      <button class="btn btn-gray" id="addRow">항목 추가</button>
+    </div>
     <button class="btn btn-primary" id="saveChanges">변경사항 저장</button>
     <button class="btn btn-danger" id="deleteChecked">체크된 항목 삭제</button>
     <span class="pill">총: <span id="totalCount" class="count">0</span>개</span>
@@ -87,84 +105,236 @@
     </thead>
     <tbody></tbody>
   </table>
+
+  <div class="row">
+    <div class="muted">※ 체크는 즉시 반영되며, 수량/비고/추가/삭제는 <b>변경사항 저장</b>을 눌러야 반영됩니다.</div>
+  </div>
+
+  <hr style="border:none; border-top:1px solid #eee; margin:18px 0;">
+
+  <div class="row">
+    <label>이 목록을 다른 이름으로 복제:</label>
+    <input type="text" id="cloneTitle" placeholder="예) 2025 발리(가족용)" style="min-width:280px;" />
+    <button class="btn btn-primary" id="doClone">복제</button>
+  </div>
 </div>
 
+<!-- ★ 하단 고정 저장 바 (모바일 친화, safe-area 반영) -->
 <div class="sticky-bar">
+  <div class="sticky-left">
+    <span class="pill">총: <span id="totalCount_bottom" class="count">0</span>개</span>
+    <span class="pill">체크됨: <span id="checkedCount_bottom" class="count">0</span>개</span>
+  </div>
   <button class="btn btn-primary" id="saveChangesSticky">변경사항 저장</button>
 </div>
 
 <script>
-  const supabase = window.supabase.createClient(
+  // ✅ (1) DB 접속 문제 해결했던 방식: 전역에 sb를 만들고, 모든 쿼리는 sb로만 실행
+  window.sb = window.supabase.createClient(
     'https://xxmtxuhcdzidhrefrvwf.supabase.co',
-    'YOUR_ANON_KEY'
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4bXR4dWhjZHppZGhyZWZydndmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwODAyNTQsImV4cCI6MjA1OTY1NjI1NH0.TaCCDlJvKrif_pZY038Qkglip8h-Qqjp2w2GlKwvoVg'
   );
+
+  // (중요) sb로만 쓰기
+  const sb = window.sb;
 
   const params = new URLSearchParams(location.search);
   const tripTitle = params.get('title') || '';
   document.getElementById('titleBadge').textContent = tripTitle || '(제목 없음)';
 
   const tbody = document.querySelector('#tbl tbody');
+  const addRowBtn = document.getElementById('addRow');
+  const saveChangesBtn = document.getElementById('saveChanges');
+  const saveChangesStickyBtn = document.getElementById('saveChangesSticky');
+  const deleteCheckedBtn = document.getElementById('deleteChecked');
+  const totalCountEl = document.getElementById('totalCount');
+  const checkedCountEl = document.getElementById('checkedCount');
+  const totalCountBottomEl = document.getElementById('totalCount_bottom');
+  const checkedCountBottomEl = document.getElementById('checkedCount_bottom');
+  const addCountEl = document.getElementById('addCount');
+
+  const escapeHtml = (s='') => s.replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  const clampInt = (v,min,max) => Math.max(min, Math.min(max, Math.floor(Number(v)||min)));
+
+  function refreshCounters(){
+    const total = tbody.querySelectorAll('tr').length;
+    const checked = tbody.querySelectorAll('input.chk:checked').length;
+    totalCountEl.textContent = total;
+    checkedCountEl.textContent = checked;
+    totalCountBottomEl.textContent = total;
+    checkedCountBottomEl.textContent = checked;
+  }
 
   async function loadItems(){
     if(!tripTitle) return;
+    const { data, error } = await sb
+      .from('packing_items')
+      .select('*')
+      .eq('trip_title', tripTitle)
+      .order('checked', {ascending:true})
+      .order('item_name', {ascending:true});
 
-    const { data, error } = await supabase
+    if(error){ alert('불러오기 실패: '+error.message); return; }
+
+    tbody.innerHTML='';
+    for(const row of data){
+      const tr = document.createElement('tr');
+      tr.dataset.id = row.id;
+      tr.innerHTML = `
+        <td class="col-check"><input type="checkbox" class="chk" ${row.checked?'checked':''}></td>
+        <td class="col-item"><input type="text" class="item" value="${escapeHtml(row.item_name || '')}"></td>
+        <td class="col-qty"><input type="number" min="1" class="qty" value="${Number(row.quantity)||1}"></td>
+        <td class="col-note"><input type="text" class="note" value="${escapeHtml(row.note||'')}"></td>
+        <td class="col-del"><button class="btn btn-danger del">삭제</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+    refreshCounters();
+  }
+
+  // 체크 즉시 업데이트
+  tbody.addEventListener('change', async (e)=>{
+    if(e.target.classList.contains('chk')){
+      const tr = e.target.closest('tr');
+      const id = Number(tr.dataset.id);
+      const checked = e.target.checked;
+
+      // ✅ id가 없는(새로 추가한) 행의 체크는 저장 전이므로 즉시 업데이트하지 않음
+      if(!id){
+        refreshCounters();
+        return;
+      }
+
+      const { error } = await sb.from('packing_items').update({checked}).eq('id', id);
+      if(error){
+        alert('체크 업데이트 실패: '+error.message);
+        e.target.checked = !checked;
+      }
+      refreshCounters();
+    }
+  });
+
+  // 삭제 표시(저장해야 반영)
+  tbody.addEventListener('click', (e)=>{
+    if(e.target.classList.contains('del')){
+      const tr = e.target.closest('tr');
+      tr.dataset._delete = '1';
+      tr.style.opacity = '0.4';
+    }
+  });
+
+  function addEmptyRow(){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="col-check"><input type="checkbox" class="chk"></td>
+      <td class="col-item"><input type="text" class="item" placeholder="새 준비물"></td>
+      <td class="col-qty"><input type="number" min="1" class="qty" value="1"></td>
+      <td class="col-note"><input type="text" class="note" placeholder="메모"></td>
+      <td class="col-del"><button class="btn btn-danger del">삭제</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+  function addEmptyRows(n=1){
+    n = clampInt(n,1,200);
+    for(let i=0;i<n;i++) addEmptyRow();
+    refreshCounters();
+  }
+
+  addRowBtn.onclick = ()=> addEmptyRows(addCountEl.value);
+  addCountEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ addEmptyRows(addCountEl.value); } });
+
+  // 저장: 삭제 → 업데이트 → 추가
+  async function doSave(){
+    // 삭제
+    const toDelete=[...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset._delete==='1' && tr.dataset.id);
+    if(toDelete.length){
+      const ids = toDelete.map(tr=>Number(tr.dataset.id)).filter(Boolean);
+      if(ids.length){
+        const { error } = await sb.from('packing_items').delete().in('id', ids);
+        if(error){ alert('삭제 실패: '+error.message); return; }
+      }
+      toDelete.forEach(tr=>tr.remove());
+    }
+
+    // 업데이트
+    const toUpdate=[...tbody.querySelectorAll('tr')].filter(tr=>tr.dataset.id && tr.dataset._delete!=='1');
+    for(const tr of toUpdate){
+      const id = Number(tr.dataset.id);
+      const item_name = tr.querySelector('.item').value.trim();
+      const quantity = Number(tr.querySelector('.qty').value)||1;
+      const note = tr.querySelector('.note').value.trim() || null;
+
+      const { error } = await sb.from('packing_items')
+        .update({ item_name, quantity, note })
+        .eq('id', id);
+
+      if(error){ alert('업데이트 실패: '+error.message); return; }
+    }
+
+    // 추가
+    const toInsert=[...tbody.querySelectorAll('tr')].filter(tr=>!tr.dataset.id && tr.dataset._delete!=='1');
+    const payload=[];
+    for(const tr of toInsert){
+      const item_name = tr.querySelector('.item').value.trim();
+      if(!item_name) continue;
+      const quantity = Number(tr.querySelector('.qty').value)||1;
+      const checked = tr.querySelector('.chk').checked;
+      const note = tr.querySelector('.note').value.trim() || null;
+      payload.push({ trip_title: tripTitle, item_name, quantity, checked, note });
+    }
+
+    if(payload.length){
+      const { error } = await sb.from('packing_items').insert(payload);
+      if(error){ alert('추가 실패: '+error.message); return; }
+    }
+
+    alert('저장되었습니다.');
+    await loadItems();
+  }
+
+  // 버튼들 → 동일 저장 로직
+  saveChangesBtn.onclick = ()=> doSave();
+  saveChangesStickyBtn.onclick = ()=> doSave();
+
+  // 체크된 항목들 삭제 표시
+  deleteCheckedBtn.onclick = ()=>{
+    [...tbody.querySelectorAll('tr')].forEach(tr=>{
+      const chk = tr.querySelector('.chk');
+      if(chk && chk.checked){
+        tr.dataset._delete='1';
+        tr.style.opacity='0.4';
+      }
+    });
+  };
+
+  // 복제
+  document.getElementById('doClone').onclick = async ()=>{
+    const newTitle = (document.getElementById('cloneTitle').value||'').trim();
+    if(!newTitle){ alert('복제할 새 제목을 입력해 주세요.'); return; }
+
+    const { data, error } = await sb
       .from('packing_items')
       .select('*')
       .eq('trip_title', tripTitle);
 
-    if(error){
-      alert('불러오기 실패: ' + error.message);
-      return;
-    }
+    if(error){ alert('원본 불러오기 실패: '+error.message); return; }
+    if(!data?.length){ alert('복제할 항목이 없습니다.'); return; }
 
-    tbody.innerHTML = '';
+    const payload = data.map(r=>({
+      trip_title: newTitle,
+      item_name: r.item_name,
+      quantity: r.quantity,
+      checked: r.checked,
+      note: r.note
+    }));
 
-    for(const row of data){
-      const tr = document.createElement('tr');
-      tr.dataset.id = row.id;
+    const { error: insErr } = await sb.from('packing_items').insert(payload);
+    if(insErr){ alert('복제 실패: '+insErr.message); return; }
 
-      tr.innerHTML = `
-        <td class="col-check"><input type="checkbox" class="chk" ${row.checked ? 'checked' : ''}></td>
-        <td class="col-item"><input type="text" class="item" value="${row.item_name || ''}"></td>
-        <td class="col-qty"><input type="number" class="qty" value="${row.quantity || 1}"></td>
-        <td class="col-note"><input type="text" class="note" value="${row.note || ''}"></td>
-        <td class="col-del"><button class="btn btn-danger del">삭제</button></td>
-      `;
-
-      tbody.appendChild(tr);
-    }
-  }
-
-  async function saveChanges(){
-    const rows = tbody.querySelectorAll('tr');
-
-    for(const tr of rows){
-      const id = tr.dataset.id;
-
-      const item_name = tr.querySelector('.item').value;
-      const quantity = tr.querySelector('.qty').value;
-      const note = tr.querySelector('.note').value;
-
-      const { error } = await supabase
-        .from('packing_items')
-        .update({ item_name, quantity, note })
-        .eq('id', id);
-
-      if(error){
-        alert('저장 실패: ' + error.message);
-        return;
-      }
-    }
-
-    alert('저장 완료');
-  }
-
-  document.getElementById('saveChanges').onclick = saveChanges;
-  document.getElementById('saveChangesSticky').onclick = saveChanges;
+    alert('복제되었습니다. 새 제목: '+newTitle);
+  };
 
   loadItems();
 </script>
-
 </body>
 </html>
